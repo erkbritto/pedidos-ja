@@ -16,19 +16,19 @@ export function PedidoMobileCard({ pedido }: { pedido: Pedido }) {
       </div>
 
       <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
-        <div>
+        <div key="quantidade">
           <dt className="text-xs text-muted-foreground">Quantidade</dt>
           <dd className="tabular">{formatInteger(pedido.quantidade)}</dd>
         </div>
-        <div>
+        <div key="valor-unitario">
           <dt className="text-xs text-muted-foreground">Valor unitário</dt>
           <dd className="tabular">{formatCurrency(pedido.valor_unitario)}</dd>
         </div>
-        <div>
+        <div key="valor-total">
           <dt className="text-xs text-muted-foreground">Valor total</dt>
           <dd className="font-semibold tabular">{formatCurrency(pedido.valor_total)}</dd>
         </div>
-        <div>
+        <div key="data-criacao">
           <dt className="text-xs text-muted-foreground">Data de criação</dt>
           <dd className="text-muted-foreground">{formatDateTime(pedido.data_criacao)}</dd>
         </div>

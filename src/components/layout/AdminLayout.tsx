@@ -14,8 +14,8 @@ const gestao = [
 ] as const;
 
 const projeto = [
-  { label: "API & Documentação", to: "/api", icon: Server, end: false },
-  { label: "Arquitetura", to: "/arquitetura", icon: Network, end: false },
+  { label: "API & Documentação", to: "/admin/api", icon: Server, end: false },
+  { label: "Arquitetura", to: "/admin/arquitetura", icon: Network, end: false },
 ] as const;
 
 type NavGroup = typeof gestao | typeof projeto;
@@ -117,7 +117,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
           <div className="ml-auto">
             <Button asChild variant="outline" size="sm">
-              <Link to="/">Início / Área do Cliente</Link>
+              <Link to="/">Voltar ao aplicativo</Link>
             </Button>
           </div>
         </header>

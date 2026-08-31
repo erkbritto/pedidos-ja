@@ -18,7 +18,10 @@ export function PedidoStatusBadge({
   status: PedidoStatus;
   className?: string;
 }) {
-  const { className: tone, Icon } = config[status];
+  const { className: tone, Icon } = config[status] || {
+    className: "bg-muted text-muted-foreground border-border",
+    Icon: CircleDot,
+  };
   return (
     <span
       className={cn(

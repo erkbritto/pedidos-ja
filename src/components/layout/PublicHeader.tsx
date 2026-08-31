@@ -18,11 +18,7 @@ function CarrinhoButton() {
   return (
     <Link
       to="/carrinho"
-      aria-label={
-        itensNoCarrinho > 0
-          ? "Carrinho com 1 produto selecionado"
-          : "Carrinho vazio"
-      }
+      aria-label={itensNoCarrinho > 0 ? "Carrinho com 1 produto selecionado" : "Carrinho vazio"}
       className="relative flex size-11 items-center justify-center rounded-full text-foreground transition-transform active:scale-[0.95] hover:bg-muted"
     >
       <ShoppingBag aria-hidden="true" className="size-5" />

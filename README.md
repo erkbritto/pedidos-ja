@@ -100,14 +100,14 @@ src/
 
 ## Rotas da interface
 
-| Rota | Descrição |
-| --- | --- |
-| `/` | Home — catálogo, criação de pedido, confirmação e consulta |
-| `/admin` | Painel administrativo (indicadores + pedidos recentes) |
-| `/admin/pedidos` | Listagem completa, com busca e filtro locais |
-| `/admin/pedidos/:id` | Detalhes do pedido + alteração de status |
-| `/api` | Documentação do contrato HTTP consumido pela interface |
-| `/arquitetura` | Documentação da arquitetura acadêmica do projeto |
+| Rota                 | Descrição                                                  |
+| -------------------- | ---------------------------------------------------------- |
+| `/`                  | Home — catálogo, criação de pedido, confirmação e consulta |
+| `/admin`             | Painel administrativo (indicadores + pedidos recentes)     |
+| `/admin/pedidos`     | Listagem completa, com busca e filtro locais               |
+| `/admin/pedidos/:id` | Detalhes do pedido + alteração de status                   |
+| `/api`               | Documentação do contrato HTTP consumido pela interface     |
+| `/arquitetura`       | Documentação da arquitetura acadêmica do projeto           |
 
 Qualquer outro caminho exibe a página de "Página não encontrada" (404 da
 SPA), distinta do "Pedido não encontrado" (pedido inexistente) e do
@@ -226,14 +226,14 @@ npm run preview
 
 ## Scripts disponíveis
 
-| Script | Descrição |
-| --- | --- |
-| `npm run dev` | Sobe o servidor de desenvolvimento Vite |
-| `npm run typecheck` | Verifica tipos com `tsc --noEmit` |
-| `npm run lint` | Executa o ESLint |
-| `npm run build` | Roda `typecheck` e gera o build de produção em `dist/` |
-| `npm run preview` | Serve o build de produção localmente |
-| `npm run format` | Formata o projeto com Prettier |
+| Script              | Descrição                                              |
+| ------------------- | ------------------------------------------------------ |
+| `npm run dev`       | Sobe o servidor de desenvolvimento Vite                |
+| `npm run typecheck` | Verifica tipos com `tsc --noEmit`                      |
+| `npm run lint`      | Executa o ESLint                                       |
+| `npm run build`     | Roda `typecheck` e gera o build de produção em `dist/` |
+| `npm run preview`   | Serve o build de produção localmente                   |
+| `npm run format`    | Formata o projeto com Prettier                         |
 
 ## Integração futura com FastAPI
 

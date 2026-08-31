@@ -64,6 +64,7 @@ export function AdminOverviewPage() {
             className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
           >
             <StatCard
+              key="pedidos"
               label="Pedidos"
               value={String(contagem.total)}
               icon={ListOrdered}
@@ -71,6 +72,7 @@ export function AdminOverviewPage() {
               isLoading={isPending}
             />
             <StatCard
+              key="criados"
               label="Criados"
               value={String(contagem.CRIADO)}
               icon={CircleDot}
@@ -78,6 +80,7 @@ export function AdminOverviewPage() {
               isLoading={isPending}
             />
             <StatCard
+              key="confirmados"
               label="Confirmados"
               value={String(contagem.CONFIRMADO)}
               icon={CircleCheck}
@@ -85,6 +88,7 @@ export function AdminOverviewPage() {
               isLoading={isPending}
             />
             <StatCard
+              key="cancelados"
               label="Cancelados"
               value={String(contagem.CANCELADO)}
               icon={CircleSlash}
@@ -107,7 +111,7 @@ export function AdminOverviewPage() {
               />
             ) : (
               <div className="space-y-3">
-                <PedidoTable pedidos={recentes} />
+                <PedidoTable key="recentes-table" pedidos={recentes} />
                 <div className="space-y-3 md:hidden">
                   {recentes.map((pedido) => (
                     <PedidoMobileCard key={pedido.id} pedido={pedido} />

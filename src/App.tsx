@@ -4,11 +4,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { APP_BASE_PATH } from "@/lib/env";
+import { CarrinhoProvider } from "@/context/CarrinhoContext";
 
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { TecnicoShell } from "@/components/layout/TecnicoLayout";
 
-import { HomePage } from "@/pages/HomePage";
+import { CardapioPage } from "@/pages/cliente/CardapioPage";
+import { ProdutoDetalhePage } from "@/pages/cliente/ProdutoDetalhePage";
+import { CarrinhoPage } from "@/pages/cliente/CarrinhoPage";
+import { RevisarPedidoPage } from "@/pages/cliente/RevisarPedidoPage";
+import { AcompanharPage } from "@/pages/cliente/AcompanharPage";
+import { PedidoPublicoPage } from "@/pages/cliente/PedidoPublicoPage";
 import { AdminOverviewPage } from "@/pages/admin/AdminOverviewPage";
 import { AdminPedidosPage } from "@/pages/admin/AdminPedidosPage";
 import { AdminPedidoDetalhePage } from "@/pages/admin/AdminPedidoDetalhePage";
@@ -43,31 +48,66 @@ export function App() {
             Nenhuma rota ou link interno tem prefixo fixo. */}
         <BrowserRouter basename={APP_BASE_PATH}>
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            {/* Rotas públicas - envolvidas por CarrinhoProvider */}
+            <Route
+              path="/"
+              element={
+                <CarrinhoProvider>
+                  <CardapioPage />
+                </CarrinhoProvider>
+              }
+            />
+            <Route
+              path="/produto/:produtoId"
+              element={
+                <CarrinhoProvider>
+                  <ProdutoDetalhePage />
+                </CarrinhoProvider>
+              }
+            />
+            <Route
+              path="/carrinho"
+              element={
+                <CarrinhoProvider>
+                  <CarrinhoPage />
+                </CarrinhoProvider>
+              }
+            />
+            <Route
+              path="/revisar"
+              element={
+                <CarrinhoProvider>
+                  <RevisarPedidoPage />
+                </CarrinhoProvider>
+              }
+            />
+            <Route
+              path="/acompanhar"
+              element={
+                <CarrinhoProvider>
+                  <AcompanharPage />
+                </CarrinhoProvider>
+              }
+            />
+            <Route
+              path="/pedido/:id"
+              element={
+                <CarrinhoProvider>
+                  <PedidoPublicoPage />
+                </CarrinhoProvider>
+              }
+            />
 
+            {/* Rotas administrativas */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<AdminOverviewPage />} />
               <Route path="pedidos" element={<AdminPedidosPage />} />
               <Route path="pedidos/:id" element={<AdminPedidoDetalhePage />} />
+              <Route path="api" element={<ApiDocsPage />} />
+              <Route path="arquitetura" element={<ArquiteturaPage />} />
             </Route>
 
-            <Route
-              path="/api"
-              element={
-                <TecnicoShell>
-                  <ApiDocsPage />
-                </TecnicoShell>
-              }
-            />
-            <Route
-              path="/arquitetura"
-              element={
-                <TecnicoShell>
-                  <ArquiteturaPage />
-                </TecnicoShell>
-              }
-            />
-
+            {/* SPA 404 */}
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </BrowserRouter>

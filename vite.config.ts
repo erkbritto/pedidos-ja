@@ -16,7 +16,34 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
-    plugins: [react(), tailwindcss(), tsconfigPaths()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      tsconfigPaths(),
+      {
+        name: "dev-server-info",
+        configureServer(server) {
+          server.httpServer?.once("listening", () => {
+            console.log("\n");
+            console.log("  CLIENTE:");
+            console.log("  http://localhost:5173/");
+            console.log("  http://localhost:5173/produto/:id");
+            console.log("  http://localhost:5173/carrinho");
+            console.log("  http://localhost:5173/revisar");
+            console.log("  http://localhost:5173/acompanhar");
+            console.log("  http://localhost:5173/pedido/:id");
+            console.log("\n");
+            console.log("  ADMIN:");
+            console.log("  http://localhost:5173/admin");
+            console.log("  http://localhost:5173/admin/pedidos");
+            console.log("  http://localhost:5173/admin/pedidos/:id");
+            console.log("  http://localhost:5173/admin/api");
+            console.log("  http://localhost:5173/admin/arquitetura");
+            console.log("\n");
+          });
+        },
+      },
+    ],
     build: {
       outDir: "dist",
       sourcemap: false,
@@ -32,6 +59,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      open: false,
     },
   };
 });

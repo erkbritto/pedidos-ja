@@ -57,7 +57,7 @@ export function AdminPedidosPage() {
 
   const filtrados = useMemo(() => {
     if (!pedidos) return [];
-    const porStatus = status === "TODOS" ? pedidos : pedidos.filter((p) => p.status === status);
+    const porStatus = status === "TODOS" ? [...pedidos] : pedidos.filter((p) => p.status === status);
     const porBusca = porStatus.filter((p) => matchesSearch(p, search));
     return sortPedidos(porBusca, sort);
   }, [pedidos, search, status, sort]);

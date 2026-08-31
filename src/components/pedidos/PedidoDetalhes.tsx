@@ -15,23 +15,23 @@ export function PedidoDetalhes({ pedido }: { pedido: Pedido }) {
       </div>
 
       <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <div>
+        <div key="produto">
           <dt className="text-xs text-muted-foreground">Produto</dt>
           <dd className="text-sm font-medium text-foreground">{pedido.produto}</dd>
         </div>
-        <div>
+        <div key="quantidade">
           <dt className="text-xs text-muted-foreground">Quantidade</dt>
           <dd className="text-sm tabular">{formatInteger(pedido.quantidade)}</dd>
         </div>
-        <div>
+        <div key="total">
           <dt className="text-xs text-muted-foreground">Total</dt>
           <dd className="text-sm font-semibold tabular">{formatCurrency(pedido.valor_total)}</dd>
         </div>
-        <div>
+        <div key="valor-unitario">
           <dt className="text-xs text-muted-foreground">Valor unitário</dt>
           <dd className="text-sm tabular">{formatCurrency(pedido.valor_unitario)}</dd>
         </div>
-        <div>
+        <div key="feito-em">
           <dt className="text-xs text-muted-foreground">Feito em</dt>
           <dd className="text-sm text-muted-foreground">{formatDateTime(pedido.data_criacao)}</dd>
         </div>

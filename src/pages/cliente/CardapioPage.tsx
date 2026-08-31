@@ -55,9 +55,7 @@ export function CardapioPage() {
               className="rounded-xl border border-dashed border-border bg-card px-6 py-12 text-center"
             >
               <p className="text-base font-semibold text-foreground">Nenhum produto encontrado.</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Tente outro termo de busca.
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">Tente outro termo de busca.</p>
               <Button type="button" variant="outline" className="mt-5" onClick={() => setBusca("")}>
                 Limpar busca
               </Button>
