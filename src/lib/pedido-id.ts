@@ -14,3 +14,15 @@ export function parsePedidoId(value: unknown): number | null {
   const parsed = Number(raw);
   return isValidPedidoId(parsed) ? parsed : null;
 }
+
+/**
+ * Versão estrita para entrada digitada pelo usuário: aceita somente
+ * dígitos. Assim `"1e2"`, `"+4"`, `"4.0"` e `" 4 "` com lixo são rejeitados,
+ * e não apenas convertidos silenciosamente.
+ */
+export function parsePedidoIdFromInput(value: string): number | null {
+  const raw = value.trim();
+  if (!/^\d+$/.test(raw)) return null;
+  const parsed = Number(raw);
+  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+}
