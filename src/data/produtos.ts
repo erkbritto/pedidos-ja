@@ -7,8 +7,8 @@
  * banco, mock) para esses itens — eles vivem somente aqui, em memória, e não
  * geram nenhuma requisição HTTP nem endpoint novo.
  *
- * As imagens são arquivos locais em `public/products/` (SVG). Nenhum
- * hotlink externo: a interface funciona sem internet.
+ * As imagens são arquivos locais em `public/products/` e não dependem de
+ * internet externa para funcionar.
  */
 export interface ProdutoVisual {
   id: string;
@@ -26,7 +26,7 @@ export const PRODUTOS_VISUAIS: readonly ProdutoVisual[] = [
     descricao: "Hambúrguer artesanal, batata frita e refrigerante.",
     valorUnitario: 32.9,
     categoria: "Combos",
-    imagem: "/products/combo-hamburguer.svg",
+    imagem: "/products/combo-hamburguer",
   },
   {
     id: "hot-dog",
@@ -34,7 +34,7 @@ export const PRODUTOS_VISUAIS: readonly ProdutoVisual[] = [
     descricao: "Hot dog tradicional com molhos da casa.",
     valorUnitario: 18.9,
     categoria: "Lanches",
-    imagem: "/products/hot-dog.svg",
+    imagem: "/products/hot-dog.jpg",
   },
   {
     id: "batata-frita",
@@ -42,7 +42,7 @@ export const PRODUTOS_VISUAIS: readonly ProdutoVisual[] = [
     descricao: "Porção de batatas fritas crocantes.",
     valorUnitario: 14.9,
     categoria: "Acompanhamentos",
-    imagem: "/products/batata-frita.svg",
+    imagem: "/products/batata-frita.jpg",
   },
   {
     id: "refrigerante",
@@ -50,7 +50,7 @@ export const PRODUTOS_VISUAIS: readonly ProdutoVisual[] = [
     descricao: "Refrigerante gelado, copo de 500 ml.",
     valorUnitario: 7.9,
     categoria: "Bebidas",
-    imagem: "/products/refrigerante.svg",
+    imagem: "/products/refrigerante.jpg",
   },
 ] as const;
 
