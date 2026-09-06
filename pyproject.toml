@@ -1,0 +1,10 @@
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = ["alembic/versions", ".venv-test", "frontend"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+# B008: `Depends(...)` como default de parâmetro é o padrão idiomático do
+# FastAPI, não um bug — mantido fora da checagem para este projeto.
+ignore = ["B008"]

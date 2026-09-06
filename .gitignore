@@ -14,8 +14,10 @@ dist-ssr
 *.local
 
 # Variáveis de ambiente
-# `.env` contém a configuração oficial de produção e é versionado de propósito.
-# Apenas overrides locais de desenvolvedor ficam de fora do controle de versão.
+# `frontend/.env` contém a configuração oficial de produção do frontend e é
+# versionado de propósito. Já o `.env` da raiz (backend) é gerado localmente
+# a partir de `.env.example` e nunca deve ser versionado.
+/.env
 .env.local
 .env.*.local
 
@@ -29,3 +31,12 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python / backend
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.venv/
+.venv-test/
+*.egg-info/

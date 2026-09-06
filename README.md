@@ -1,251 +1,325 @@
-# Pedido Já — Frontend
+# Pedido Já
 
-Interface web (SPA) do sistema **Pedido Já**, desenvolvida como parte do
-**Trabalho 1 de Desenvolvimento de Sistemas Distribuídos**.
+Sistema de gerenciamento de Pedidos — Trabalho de Desenvolvimento de Sistemas
+Distribuídos (Entrega 1: API Pedidos + persistência + integração com a
+interface web).
+
+## Identificação
+
+- **Disciplina:** Desenvolvimento de Sistemas Distribuídos
+- **Trabalho:** Entrega 1 — API Pedidos
+- **Integrantes:** _(preencher com os nomes do grupo antes da entrega —
+  nenhum nome foi informado nos materiais recebidos, então nenhum foi
+  inventado aqui)_
 
 ## Objetivo
 
-Fornecer a interface de usuário para uma aplicação de gerenciamento de
-pedidos:
+Implementar uma aplicação de gerenciamento de Pedidos composta por:
 
-- **Home (`/`)** — experiência do cliente: catálogo, criação de pedido,
-  confirmação e consulta, tudo em uma única página;
-- **Área Administrativa (`/admin`)** — acompanhar e alterar o status dos
-  pedidos;
-- **API & Documentação (`/api`)** — contrato HTTP consumido pela interface;
-- **Arquitetura (`/arquitetura`)** — documentação didática da arquitetura
-  acadêmica do projeto.
+1. uma **API HTTP** (FastAPI) que expõe operações de criação, consulta,
+   listagem e atualização de status de Pedidos;
+2. uma camada de **persistência real** em PostgreSQL, versionada via
+   Alembic;
+3. uma **interface web** (SPA React) que consome essa API para permitir
+   que um cliente monte e acompanhe pedidos, e que um administrador
+   acompanhe e atualize o status desses pedidos.
 
-Este diretório contém **apenas o frontend**. Ele não implementa
-persistência própria, autenticação, backend ou banco de dados.
+Cada Pedido representa a compra de **um único produto** com uma
+**quantidade**, sem múltiplos itens por pedido, sem carrinho persistido no
+servidor, sem pagamento, sem estoque e sem autenticação — esse escopo é
+proposital para a Entrega 1 (ver [Limitações](#limitações-da-entrega-1)).
 
-## Contexto acadêmico
+## Arquitetura
 
-O backend (desenvolvido separadamente) segue a stack:
-
-```text
-Python + FastAPI + PostgreSQL + Docker Compose
-```
-
-com a arquitetura interna `API/Controller → Service → Repository →
-PostgreSQL`. No runtime final da entrega existem apenas dois containers:
+### Visão física (containers)
 
 ```text
-pedidos    (FastAPI + esta SPA compilada)
-postgres   (PostgreSQL)
+┌──────────────────────────┐        ┌──────────────────────────┐
+│   container: pedidos     │  SQL   │   container: postgres    │
+│  FastAPI + SPA compilada │◄──────►│        PostgreSQL 16      │
+│     (porta 8000)         │        │  (sem porta publicada)    │
+└──────────────────────────┘        └──────────────────────────┘
+            ▲
+            │ HTTP/JSON (same-origin)
+            │
+      Navegador do cliente
 ```
 
-Este frontend é compilado como arquivos estáticos (`npm run build` →
-`dist/`) e servido pela aplicação FastAPI na raiz do mesmo serviço
-(`http://localhost:8000/`).
+Apenas dois serviços Docker existem: `pedidos` e `postgres`. O
+PostgreSQL **não** publica a porta 5432 no host — só é alcançável pela
+rede interna do Compose, pelo hostname `postgres`.
 
-> Os produtos exibidos na interface são opções estáticas de entrada para o
-> domínio de Pedidos. Catálogo e Estoque não constituem serviços ou
-> capacidades persistentes nesta primeira entrega.
-
-## Stack
-
-- React 19 + TypeScript
-- Vite
-- React Router DOM (SPA, sem SSR)
-- TanStack Query (cache e sincronização de dados assíncronos)
-- Tailwind CSS v4
-- shadcn/ui (somente os componentes realmente utilizados)
-- React Hook Form + Zod
-- Lucide React (ícones)
-- npm (gerenciador de pacotes único do projeto)
-
-## Estrutura
+### Visão interna da aplicação `pedidos`
 
 ```text
-src/
-  App.tsx                    # Providers (React Query, Router) e árvore de rotas
-  main.tsx                   # Ponto de entrada Vite
-  styles.css                 # Design tokens (Tailwind v4 + oklch)
-  components/
-    architecture/            # Diagrama e cartões da página de Arquitetura
-    catalogo/                 # ProdutoCard, CatalogoProdutos, QuantidadeStepper
-    common/                    # PageHeader, StatCard, estados de loading/erro/vazio, ErrorBoundary
-    layout/                     # Brand, PublicHeader, SiteFooter, layouts de Admin/Técnico
-    pedidos/                     # Tabela, card mobile, filtros, badge de status, detalhes, 404 de pedido
-    ui/                           # Componentes shadcn/ui usados pelo projeto
-  data/
-    produtos.ts                    # Catálogo visual estático (não é backend/estoque)
-  dev/
-    mockApi.ts                      # Implementação em memória da mesma interface dos services reais
-    mockData.ts                      # Dados de exemplo do modo de demonstração
-  hooks/
-    useHealth.ts                      # Query de GET /health
-    usePedidos.ts                      # Queries/mutations de /pedidos
-  lib/
-    env.ts                               # Variáveis de ambiente e buildApiUrl()
-    format.ts                             # Formatação de moeda, número e data em pt-BR
-    pedido-id.ts                           # Validação de identificador de pedido
-    utils.ts                                # Helper cn() (clsx + tailwind-merge)
-  pages/
-    HomePage.tsx                             # /  — catálogo + pedido + confirmação + consulta
-    admin/                                     # /admin, .../pedidos, .../pedidos/:id
-    ApiDocsPage.tsx                              # /api
-    ArquiteturaPage.tsx                           # /arquitetura
-    NotFoundPage.tsx                               # 404 da SPA
-  schemas/
-    pedido.ts                                       # Validação Zod do formulário de pedido
-  services/api/
-    client.ts                                        # Cliente HTTP (fetch + timeout + AbortController)
-    health.ts, pedidos.ts                             # Chamadas específicas de cada recurso
-  types/
-    api.ts                                             # ApiError e utilitários de erro
-    pedido.ts                                           # Tipos de domínio (não alterar)
+Requisição HTTP
+      │
+      ▼
+┌─────────────┐     ┌─────────┐     ┌────────────┐     ┌────────────┐
+│ API/Router  │ ──► │ Service │ ──► │ Repository │ ──► │ PostgreSQL │
+│ (app/api)   │     │(app/    │     │ (app/      │     │            │
+│             │     │services)│     │repositories│     │            │
+└─────────────┘     └─────────┘     └────────────┘     └────────────┘
 ```
 
-## Rotas da interface
+- **API/Router** (`app/api/`): recebe a requisição HTTP, valida o corpo via
+  schemas Pydantic, delega ao Service e traduz o resultado (ou erro) em uma
+  resposta HTTP. Não contém lógica de negócio nem SQL.
+- **Service** (`app/services/pedido_service.py`): concentra as regras da
+  aplicação — cálculo de `valor_total`, definição do status inicial
+  (`CRIADO`), normalização de `cliente`/`produto`. É a única camada que
+  decide _o que_ acontece; não sabe nada sobre HTTP.
+- **Repository** (`app/repositories/pedido_repository.py`): única camada
+  que conhece SQLAlchemy/SQL. Operações de persistência (`create`,
+  `get_by_id`, `list_all`, `update_status`).
+- **PostgreSQL**: fonte de verdade dos dados. Nada é mantido em memória do
+  processo Python entre requisições.
 
-| Rota                 | Descrição                                                  |
-| -------------------- | ---------------------------------------------------------- |
-| `/`                  | Home — catálogo, criação de pedido, confirmação e consulta |
-| `/admin`             | Painel administrativo (indicadores + pedidos recentes)     |
-| `/admin/pedidos`     | Listagem completa, com busca e filtro locais               |
-| `/admin/pedidos/:id` | Detalhes do pedido + alteração de status                   |
-| `/api`               | Documentação do contrato HTTP consumido pela interface     |
-| `/arquitetura`       | Documentação da arquitetura acadêmica do projeto           |
+O frontend estático (React, compilado com Vite) é servido pela própria
+aplicação FastAPI a partir de `frontend/dist`, na mesma origem da API —
+não existe um servidor HTTP separado para a interface.
 
-Qualquer outro caminho exibe a página de "Página não encontrada" (404 da
-SPA), distinta do "Pedido não encontrado" (pedido inexistente) e do
-"Número de pedido inválido" (ID malformado).
-
-`/` é a experiência do cliente (catálogo, pedido, confirmação e consulta).
-`/admin` é apenas uma separação de interface para acompanhar os pedidos —
-**a Área Administrativa não representa autenticação ou autorização nesta
-primeira entrega.** Qualquer pessoa com o link acessa `/admin` livremente.
-
-A base da interface e a base da API são **conceitos independentes** — a
-interface nunca monta chamadas HTTP sob o caminho das suas próprias
-rotas.
-
-## Catálogo visual (`/`)
-
-A home apresenta um pequeno catálogo estático (`src/data/produtos.ts`)
-para acelerar o preenchimento do pedido. Ele **não** é um serviço de
-Catálogo nem de Estoque: são apenas quatro opções fixas no frontend, sem
-endpoint, sem persistência e sem informação de disponibilidade. Ao
-selecionar um item, os campos `produto` e `valor_unitario` do formulário
-são preenchidos automaticamente; o cliente só informa o nome e a
-quantidade.
-
-## Endpoints esperados da API
-
-A interface consome exclusivamente:
+## Estrutura do repositório
 
 ```text
-GET   /health
-POST  /pedidos
-GET   /pedidos
-GET   /pedidos/{id}
-PATCH /pedidos/{id}/status
+.
+├── app/                      # Backend FastAPI
+│   ├── api/                    # Routers HTTP (health, pedidos)
+│   ├── services/                 # Regras de negócio (PedidoService)
+│   ├── repositories/               # Acesso a dados (PedidoRepository)
+│   ├── models/                       # Modelos SQLAlchemy (ORM)
+│   ├── schemas/                        # Schemas Pydantic (entrada/saída)
+│   ├── config.py                         # Configuração via variáveis de ambiente
+│   ├── database.py                        # Engine, Session, Base, get_db
+│   └── main.py                             # Monta a app, CORS, rotas, SPA fallback
+├── alembic/                  # Migrations (schema versionado do banco)
+│   └── versions/
+├── tests/
+│   ├── unit/                   # PedidoService com repository fake
+│   └── integration/              # API completa via TestClient + Postgres real
+├── frontend/                 # SPA React + TypeScript + Vite (ver frontend/README.md)
+├── docker/
+│   └── entrypoint.sh          # Aplica migrations e sobe o Uvicorn
+├── Dockerfile                 # Build multi-stage (Node → build da SPA; Python → runtime)
+├── docker-compose.yml         # Serviços `pedidos` e `postgres`
+├── requirements.txt           # Dependências Python fixadas
+├── alembic.ini
+├── .env.example                # Referência de variáveis (não é copiado automaticamente)
+├── COMMITS_SUGERIDOS.md        # Sugestão de organização de commits (nada foi commitado)
+└── README.md                   # Este arquivo
 ```
 
-A documentação interativa (Swagger/OpenAPI) é exposta pela própria API em
-`/docs` e acessada pela interface como um link técnico — não é uma rota
-React nem um endpoint de negócio.
+## Tecnologias
 
-Nenhum outro endpoint é consumido (sem autenticação, sem CRUD de produtos
-ou clientes, sem paginação de backend, sem `DELETE`/`PUT`).
+**Backend**
 
-## Variáveis de ambiente
+- Python 3.12
+- FastAPI + Uvicorn
+- SQLAlchemy 2.x (ORM)
+- Pydantic v2 (validação/serialização)
+- Alembic (migrations)
+- psycopg 3 (driver PostgreSQL)
+- pytest + httpx (testes)
+- Ruff (lint)
 
-Configuração oficial (arquivo `.env`, versionado):
+**Persistência**
 
-```env
-VITE_API_BASE_URL=
-VITE_APP_BASE_PATH=/
-VITE_USE_MOCKS=false
-```
+- PostgreSQL 16
 
-- **`VITE_API_BASE_URL`** — origem da API. Vazio significa "mesma
-  origem" (cenário final, em que o FastAPI serve tanto a API quanto os
-  arquivos estáticos da interface). **Não deve conter `localhost` no
-  build de produção.**
-- **`VITE_APP_BASE_PATH`** — prefixo em que a interface é montada. O
-  padrão de produção é `/` (raiz). Controla, via `loadEnv` em
-  `vite.config.ts`, tanto o `base` do build do Vite quanto o `basename`
-  do React Router (lido de `import.meta.env.BASE_URL` em `src/lib/env.ts`,
-  garantindo que os dois nunca fiquem dessincronizados). Nunca é usado
-  para montar URLs de API.
-- **`VITE_USE_MOCKS`** — habilita o modo de demonstração (dados fictícios
-  em memória, sem qualquer chamada real à API). Deve permanecer `false`
-  por padrão; só é útil para desenvolver a interface sem a API no ar.
+**Frontend** (ver detalhes em [`frontend/README.md`](frontend/README.md))
 
-Para desenvolvimento local, use `.env.local` (não versionado) para
-sobrescrever a origem da API, por exemplo:
+- React 19 + TypeScript + Vite
+- React Router DOM, TanStack Query
+- Tailwind CSS v4, shadcn/ui
 
-```env
-VITE_API_BASE_URL=http://localhost:8000
-```
+**Infraestrutura**
 
-## Desenvolvimento
+- Docker + Docker Compose (build multi-stage; Node não existe na imagem final)
 
-Requer Node.js 20+ e npm.
+## Modelo de Pedido
+
+| Campo | Tipo | Observação |
+| --- | --- | --- |
+| `id` | inteiro | gerado pelo banco (autoincrement) |
+| `cliente` | texto | obrigatório, não vazio |
+| `produto` | texto | obrigatório, não vazio |
+| `quantidade` | inteiro | obrigatório, ≥ 1 |
+| `valor_unitario` | decimal (2 casas) | obrigatório, > 0 |
+| `valor_total` | decimal (2 casas) | **calculado pela aplicação** (`quantidade × valor_unitario`) — nunca aceito na entrada |
+| `status` | texto | `CRIADO` \| `CONFIRMADO` \| `CANCELADO`; inicia sempre como `CRIADO` |
+| `data_criacao` | timestamp | preenchido pelo banco no momento da criação |
+
+`id`, `valor_total`, `status` inicial e `data_criacao` nunca são aceitos
+como entrada — são sempre decididos pela aplicação.
+
+## Endpoints
+
+| Método | Caminho | Descrição | Sucesso | Erros |
+| --- | --- | --- | --- | --- |
+| GET | `/health` | Disponibilidade da aplicação | 200 | — |
+| POST | `/pedidos` | Cria um pedido | 201 | 422 |
+| GET | `/pedidos` | Lista todos os pedidos | 200 | — |
+| GET | `/pedidos/{id}` | Consulta um pedido | 200 | 404 |
+| PATCH | `/pedidos/{id}/status` | Atualiza somente o status | 200 | 404, 422 |
+
+Documentação interativa (Swagger/OpenAPI) gerada automaticamente pelo
+FastAPI em `/docs` (UI) e `/openapi.json` (schema).
+
+Nenhum outro endpoint existe: sem autenticação, sem CRUD de produtos,
+sem paginação, sem `DELETE`/`PUT`.
+
+## Como executar (Docker — forma oficial)
+
+Pré-requisito: apenas Docker e Docker Compose instalados. **Não** é
+necessário instalar Node, Python ou PostgreSQL localmente, nem copiar
+`.env.example` para `.env`, nem criar o banco manualmente — tudo isso é
+feito pelo Compose/entrypoint.
 
 ```bash
-npm install
-npm run dev
+docker compose up -d --build
 ```
 
-A aplicação sobe em `http://localhost:5173/`.
+Isso vai:
 
-## Modo de demonstração (mocks)
+1. construir a imagem `pedidos` em duas etapas (build da SPA com Node,
+   depois runtime Python sem Node);
+2. subir o PostgreSQL e aguardar seu healthcheck (`pg_isready`);
+3. aplicar as migrations do Alembic (`alembic upgrade head`) antes de
+   iniciar o Uvicorn;
+4. expor a aplicação completa (API + interface) em `http://localhost:8000/`.
 
-Com `VITE_USE_MOCKS=true`, a interface passa a usar `src/dev/mockApi.ts`
-no lugar das chamadas HTTP reais. Os dados existem **somente em memória
-enquanto a página estiver aberta** — não há `localStorage`,
-`IndexedDB`, banco de dados ou qualquer outra forma de persistência, e um
-recarregamento da página reinicia os dados para o estado inicial. Um
-indicador "Modo de demonstração" é exibido na interface enquanto o modo
-está ativo. A implementação dos mocks segue exatamente a mesma
-assinatura dos serviços reais (`src/services/api/*`), então nenhuma
-página precisa saber se está em modo real ou de demonstração.
+### URLs
 
-## Build de produção
+| URL | Conteúdo |
+| --- | --- |
+| `http://localhost:8000/` | Interface web (home do cliente) |
+| `http://localhost:8000/admin` | Área administrativa |
+| `http://localhost:8000/pedidos` | API de Pedidos (ver tabela de [Endpoints](#endpoints)) |
+| `http://localhost:8000/docs` | Swagger UI |
+| `http://localhost:8000/openapi.json` | Schema OpenAPI |
+| `http://localhost:8000/health` | Health check |
+
+Rotas React funcionam diretamente por URL (não apenas navegando pela SPA),
+pois a API é registrada antes do fallback da SPA no `app/main.py`:
+`/`, `/produto/:produtoId`, `/carrinho`, `/revisar`, `/acompanhar`,
+`/pedido/:id`, `/admin`, `/admin/pedidos`, `/admin/pedidos/:id`,
+`/admin/api`, `/admin/arquitetura`.
+
+Para parar: `docker compose stop`. Para parar e remover os containers
+(mantendo o volume do banco): `docker compose down`. **Evite**
+`docker compose down -v` — isso apaga o volume `postgres_data` e, com
+ele, todos os pedidos.
+
+## Configuração
+
+Variáveis de ambiente do backend (todas com default de laboratório —
+funcionam sem nenhum arquivo `.env`, mas podem ser sobrescritas):
+
+| Variável | Default (Compose) | Descrição |
+| --- | --- | --- |
+| `DATABASE_URL` | `postgresql+psycopg://pedidos:pedidos@postgres:5432/pedidos` | String de conexão do PostgreSQL |
+| `CORS_ORIGINS` | `http://localhost:5173` | Origens extras liberadas para CORS (dev do frontend separado) |
+| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `pedidos` / `pedidos` / `pedidos` | Credenciais do container `postgres` |
+
+Veja `.env.example` na raiz para referência (não é copiado
+automaticamente — o Compose já define os mesmos defaults).
+
+O frontend, por sua vez, é compilado no Docker com configuração
+**same-origin** (`VITE_API_BASE_URL=` vazio, `VITE_APP_BASE_PATH=/`,
+`VITE_USE_MOCKS=false`) — não há `localhost` embutido no bundle final.
+Detalhes em [`frontend/README.md`](frontend/README.md).
+
+## Alembic (migrations)
+
+O schema do banco é versionado — nunca criado via
+`Base.metadata.create_all()` em produção. A migration inicial
+(`alembic/versions/0001_create_pedidos_table.py`) cria a tabela `pedidos`
+com CHECK constraints para `status`, `quantidade` e os valores monetários.
+
+O container `pedidos` roda `alembic upgrade head` automaticamente antes de
+iniciar o Uvicorn (ver `docker/entrypoint.sh`). Para rodar manualmente
+(ex.: desenvolvimento local fora do Docker):
 
 ```bash
-npm run typecheck
-npm run lint
-npm run build
+export DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos
+alembic upgrade head
 ```
 
-O build gera apenas a pasta `dist/`, pronta para ser copiada para dentro
-da imagem da aplicação FastAPI e servida na raiz desse serviço (por
-exemplo, com `StaticFiles` montado em `/`, com fallback de SPA para
-`index.html` em rotas não reconhecidas pela API).
+## Persistência e procedimento de restart
 
-Para pré-visualizar o build localmente:
+Os dados vivem no volume Docker nomeado `postgres_data`, independente do
+ciclo de vida do container `pedidos`. Para comprovar:
 
 ```bash
-npm run preview
+# 1. Criar um pedido e guardar o id retornado
+curl -s -X POST http://localhost:8000/pedidos \
+  -H "Content-Type: application/json" \
+  -d '{"cliente":"Ana Souza","produto":"Combo de Hambúrguer","quantidade":2,"valor_unitario":32.90}'
+
+# 2. Reiniciar somente o container da aplicação (o Postgres não é afetado)
+docker compose restart pedidos
+
+# 3. Consultar o mesmo id — o pedido continua existindo
+curl -s http://localhost:8000/pedidos/<id>
 ```
 
-## Scripts disponíveis
+`docker compose restart pedidos` reinicia apenas o container `pedidos`; o
+`postgres` continua rodando ininterruptamente, e o volume `postgres_data`
+nunca é tocado por esse comando.
 
-| Script              | Descrição                                              |
-| ------------------- | ------------------------------------------------------ |
-| `npm run dev`       | Sobe o servidor de desenvolvimento Vite                |
-| `npm run typecheck` | Verifica tipos com `tsc --noEmit`                      |
-| `npm run lint`      | Executa o ESLint                                       |
-| `npm run build`     | Roda `typecheck` e gera o build de produção em `dist/` |
-| `npm run preview`   | Serve o build de produção localmente                   |
-| `npm run format`    | Formata o projeto com Prettier                         |
+## Testes
 
-## Integração futura com FastAPI
+```bash
+# Requer um PostgreSQL acessível (local ou via Docker) e DATABASE_URL
+# apontando para um banco de TESTE (nunca o de desenvolvimento).
+pip install -r requirements.txt
+export DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos_test
+pytest
+ruff check .
+```
 
-Este diretório é independente do backend. A integração final consiste
-em, no projeto FastAPI:
+- `tests/unit/`: `PedidoService` isolado, com um repository fake em
+  memória (sem banco) — cálculo de `valor_total` com `Decimal`, status
+  inicial, normalização de `cliente`/`produto`, delegação ao repository.
+- `tests/integration/`: API completa via `TestClient`, contra um
+  PostgreSQL real (schema aplicado por Alembic, nunca `create_all()`) —
+  os 5 endpoints, validações (422), não encontrado (404), e a garantia de
+  que o `PATCH` de status não altera nenhum outro campo.
 
-1. copiar o conteúdo de `dist/` para dentro da imagem da aplicação;
-2. montar esses arquivos estáticos na raiz do serviço, com fallback de
-   SPA (toda rota não reconhecida pela API deve servir `index.html`,
-   para que o React Router assuma o roteamento client-side);
-3. manter a API (`/health`, `/pedidos`, `/docs`, etc.) no mesmo serviço,
-   já que em produção `VITE_API_BASE_URL` fica vazio (mesma origem).
+## Decisões de implementação
 
-**Observação:** este diretório não contém backend nem banco de dados —
-apenas a interface web estática que consome a API por HTTP/JSON.
+- **Camadas explícitas** (API → Service → Repository) mesmo em um escopo
+  pequeno: facilita testar o Service isoladamente e deixa claro onde cada
+  regra vive.
+- **`valor_total` sempre calculado no Service**, nunca aceito do cliente —
+  e sempre com `Decimal` (nunca `float`) para evitar erro de
+  arredondamento em valores monetários; a serialização Pydantic converte
+  `Decimal` para número JSON (não string) via `field_serializer` explícito,
+  para casar exatamente com o tipo `number` esperado pelo frontend.
+- **Status como `VARCHAR` + `CHECK constraint`**, não `ENUM` nativo do
+  Postgres: evolução do conjunto de status não exige `ALTER TYPE`.
+- **Erros nunca vazam detalhes internos**: um handler genérico de exceção
+  devolve sempre `{"detail": "Erro interno do servidor."}` com HTTP 500,
+  registrando o stack trace apenas no log do servidor.
+- **SPA servida pela própria API** (same-origin): elimina CORS em
+  produção e simplifica o deploy a dois containers.
+- **API sempre registrada antes do catch-all da SPA**: `/health`,
+  `/pedidos*`, `/docs` e `/openapi.json` nunca são interceptados pelo
+  fallback de `index.html`.
+
+## Limitações da Entrega 1
+
+Por escopo, propositalmente **não** existem nesta entrega:
+
+- autenticação, autorização, login, JWT ou usuários;
+- múltiplos itens por pedido, carrinho persistido no servidor ou
+  pagamento;
+- estoque, disponibilidade ou CRUD de produtos no backend (o catálogo
+  exibido na interface é uma lista estática do frontend, não um serviço);
+- paginação, filtros no servidor ou `DELETE`/`PUT` de pedidos;
+- qualquer mecanismo de deploy além de `docker compose up -d --build`.
+
+## Próximos passos manuais (fora do escopo desta entrega)
+
+Após revisão do grupo, criar manualmente a tag `APIPedidos-1-final` no
+commit final desta entrega. Nenhuma tag foi criada automaticamente.

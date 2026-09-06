@@ -1,0 +1,30 @@
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+.pytest_cache
+.ruff_cache
+.venv
+.venv-test
+
+# Frontend — reconstruído dentro do build multi-stage
+frontend/node_modules
+frontend/dist
+
+# Ambiente
+.env
+.env.local
+.env.*.local
+frontend/.env.local
+
+# Editor / SO
+.vscode
+.idea
+.DS_Store
+
+# Documentação de apoio (não necessária na imagem)
+COMMITS_SUGERIDOS.md
+CONTINUACAO.md
+README.md
