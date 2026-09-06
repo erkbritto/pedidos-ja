@@ -26,7 +26,7 @@ export const PRODUTOS_VISUAIS: readonly ProdutoVisual[] = [
     descricao: "Hambúrguer artesanal, batata frita e refrigerante.",
     valorUnitario: 32.9,
     categoria: "Combos",
-    imagem: "/products/combo-hamburguer",
+    imagem: "/products/combo-hamburguer.jpg",
   },
   {
     id: "hot-dog",

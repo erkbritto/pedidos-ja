@@ -165,7 +165,7 @@ como entrada — são sempre decididos pela aplicação.
 Documentação interativa (Swagger/OpenAPI) gerada automaticamente pelo
 FastAPI em `/docs` (UI) e `/openapi.json` (schema).
 
-Nenhum outro endpoint existe: sem autenticação, sem CRUD de produtos,
+Nenhum outro endpoint de negócio existe: sem autenticação, sem CRUD de produtos,
 sem paginação, sem `DELETE`/`PUT`.
 
 ## Como executar (Docker — forma oficial)
@@ -217,7 +217,7 @@ funcionam sem nenhum arquivo `.env`, mas podem ser sobrescritas):
 
 | Variável | Default (Compose) | Descrição |
 | --- | --- | --- |
-| `DATABASE_URL` | `postgresql+psycopg://pedidos:pedidos@postgres:5432/pedidos` | String de conexão do PostgreSQL |
+| `DATABASE_URL` | obrigatória | String de conexão do PostgreSQL |
 | `CORS_ORIGINS` | `http://localhost:5173` | Origens extras liberadas para CORS (dev do frontend separado) |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `pedidos` / `pedidos` / `pedidos` | Credenciais do container `postgres` |
 
@@ -270,13 +270,17 @@ nunca é tocado por esse comando.
 ## Testes
 
 ```bash
-# Requer um PostgreSQL acessível (local ou via Docker) e DATABASE_URL
+# Requer um PostgreSQL acessível (local ou via Docker) e TEST_DATABASE_URL
 # apontando para um banco de TESTE (nunca o de desenvolvimento).
 pip install -r requirements.txt
-export DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos_test
+export TEST_DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos_test
 pytest
 ruff check .
 ```
+
+Os testes usam exclusivamente `TEST_DATABASE_URL`. O nome do banco de teste
+deve terminar em `_test`; a configuração recusa o banco de desenvolvimento
+para evitar apagar dados reais durante o isolamento dos testes.
 
 - `tests/unit/`: `PedidoService` isolado, com um repository fake em
   memória (sem banco) — cálculo de `valor_total` com `Decimal`, status

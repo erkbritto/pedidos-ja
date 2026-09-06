@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Loader2, Check, ReceiptText, Home } from "lucide-react";
 import { PublicPageHeader } from "@/components/layout/PublicHeader";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,6 @@ import { PedidoStatusBadge } from "@/components/pedidos/PedidoStatusBadge";
 export function PedidoPublicoPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const foiCriado = searchParams.get("criado") === "1";
 
   const pedidoId = id ? Number(id) : NaN;
@@ -151,11 +150,7 @@ export function PedidoPublicoPage() {
             </p>
 
             <div className="mt-8 flex flex-col gap-3">
-              <Button
-                asChild
-                className="h-12 w-full text-base"
-                onClick={() => navigate(`/pedido/${pedido.id}`)}
-              >
+              <Button asChild className="h-12 w-full text-base">
                 <Link to={`/pedido/${pedido.id}`}>
                   <ReceiptText aria-hidden="true" className="size-4" />
                   Acompanhar este pedido

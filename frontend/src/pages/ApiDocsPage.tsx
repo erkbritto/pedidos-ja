@@ -31,12 +31,10 @@ Content-Type: application/json
 }`;
 
 const httpCodes = [
-  { code: 200, meaning: "Requisição bem-sucedida (consulta/listagem/alteração de status)." },
-  { code: 201, meaning: "Pedido criado com sucesso." },
-  { code: 400, meaning: "Requisição malformada." },
-  { code: 404, meaning: "Pedido não encontrado." },
-  { code: 422, meaning: "Dados enviados não passaram na validação da API." },
-  { code: 500, meaning: "Erro interno na aplicação de pedidos." },
+  { code: 201, meaning: "Criação de pedido com sucesso." },
+  { code: 200, meaning: "Consultas, listagem, alteração de status e health." },
+  { code: 404, meaning: "Recurso ou pedido inexistente." },
+  { code: 422, meaning: "Validação, payload ou status inválido." },
 ] as const;
 
 export function ApiDocsPage() {

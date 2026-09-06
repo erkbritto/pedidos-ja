@@ -70,6 +70,9 @@ export function AdminPedidoDetalhePage() {
   }
 
   const statusInalterado = statusSelecionado === query.data?.status;
+  const statusValido = statusSelecionado !== null && PEDIDO_STATUS.includes(statusSelecionado);
+  const podeSalvar =
+    Boolean(query.data) && statusValido && !statusInalterado && !updateStatus.isPending;
 
   return (
     <div className="space-y-8">
@@ -119,11 +122,7 @@ export function AdminPedidoDetalhePage() {
                 </Select>
               </div>
 
-              <Button
-                type="button"
-                onClick={handleSalvarStatus}
-                disabled={statusInalterado || updateStatus.isPending}
-              >
+              <Button type="button" onClick={handleSalvarStatus} disabled={!podeSalvar}>
                 {updateStatus.isPending ? (
                   <Loader2 aria-hidden="true" className="size-4 animate-spin" />
                 ) : null}

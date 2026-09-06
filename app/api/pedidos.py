@@ -5,6 +5,8 @@ response model) e delegação para `PedidoService`. Nenhum cálculo de
 `valor_total`, SQL ou regra de negócio acontece aqui.
 """
 
+import re
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -16,6 +18,17 @@ from app.services.pedido_service import PedidoNaoEncontradoError, PedidoService
 router = APIRouter(prefix="/pedidos", tags=["Pedidos"])
 
 PEDIDO_NAO_ENCONTRADO = {"description": "Pedido não encontrado."}
+ID_PEDIDO_INVALIDO = "O id do pedido deve ser um inteiro positivo."
+
+
+def parse_pedido_id(pedido_id: str) -> int:
+    """Valida IDs sem permitir coerção numérica permissiva do FastAPI."""
+    if not re.fullmatch(r"[0-9]+", pedido_id):
+        raise HTTPException(status_code=422, detail=ID_PEDIDO_INVALIDO)
+    parsed_id = int(pedido_id)
+    if parsed_id <= 0 or parsed_id.bit_length() > 63:
+        raise HTTPException(status_code=422, detail=ID_PEDIDO_INVALIDO)
+    return parsed_id
 
 
 def get_pedido_service(db: Session = Depends(get_db)) -> PedidoService:
@@ -60,10 +73,11 @@ def listar_pedidos(service: PedidoService = Depends(get_pedido_service)) -> list
     responses={404: PEDIDO_NAO_ENCONTRADO},
 )
 def obter_pedido(
-    pedido_id: int, service: PedidoService = Depends(get_pedido_service)
+    pedido_id: str, service: PedidoService = Depends(get_pedido_service)
 ) -> PedidoResponse:
+    pedido_id_int = parse_pedido_id(pedido_id)
     try:
-        pedido = service.buscar_pedido(pedido_id)
+        pedido = service.buscar_pedido(pedido_id_int)
     except PedidoNaoEncontradoError as exc:
         raise HTTPException(status_code=404, detail="Pedido não encontrado.") from exc
     return PedidoResponse.model_validate(pedido)
@@ -77,12 +91,13 @@ def obter_pedido(
     responses={404: PEDIDO_NAO_ENCONTRADO},
 )
 def atualizar_status_pedido(
-    pedido_id: int,
+    pedido_id: str,
     dados: PedidoStatusUpdate,
     service: PedidoService = Depends(get_pedido_service),
 ) -> PedidoResponse:
+    pedido_id_int = parse_pedido_id(pedido_id)
     try:
-        pedido = service.atualizar_status(pedido_id, dados.status)
+        pedido = service.atualizar_status(pedido_id_int, dados.status)
     except PedidoNaoEncontradoError as exc:
         raise HTTPException(status_code=404, detail="Pedido não encontrado.") from exc
     return PedidoResponse.model_validate(pedido)

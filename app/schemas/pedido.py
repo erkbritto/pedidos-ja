@@ -23,7 +23,7 @@ class PedidoStatus(StrEnum):
 class PedidoCreate(BaseModel):
     """Corpo aceito por `POST /pedidos`."""
 
-    model_config = ConfigDict(str_strip_whitespace=True)
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     cliente: str = Field(min_length=1, max_length=120, examples=["Ana Souza"])
     produto: str = Field(min_length=1, max_length=120, examples=["Combo de Hambúrguer"])
@@ -40,6 +40,8 @@ class PedidoCreate(BaseModel):
 
 class PedidoStatusUpdate(BaseModel):
     """Corpo aceito por `PATCH /pedidos/{id}/status`."""
+
+    model_config = ConfigDict(extra="forbid")
 
     status: PedidoStatus
 

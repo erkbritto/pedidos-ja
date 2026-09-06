@@ -18,7 +18,11 @@ class PedidoRepository:
 
     def create(self, pedido: Pedido) -> Pedido:
         self._db.add(pedido)
-        self._db.commit()
+        try:
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
         self._db.refresh(pedido)
         return pedido
 
@@ -31,6 +35,10 @@ class PedidoRepository:
 
     def update_status(self, pedido: Pedido, status: str) -> Pedido:
         pedido.status = status
-        self._db.commit()
+        try:
+            self._db.commit()
+        except Exception:
+            self._db.rollback()
+            raise
         self._db.refresh(pedido)
         return pedido

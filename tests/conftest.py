@@ -7,7 +7,9 @@ teste unitário (que não toca o banco) importe algo de `app` primeiro.
 
 import os
 
-os.environ.setdefault(
-    "DATABASE_URL",
-    "postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos_test",
-)
+test_database_url = os.environ.get("TEST_DATABASE_URL")
+if not test_database_url:
+    raise RuntimeError("Defina TEST_DATABASE_URL para executar os testes de backend")
+if not test_database_url.rsplit("/", 1)[-1].split("?", 1)[0].endswith("_test"):
+    raise RuntimeError("TEST_DATABASE_URL deve apontar para um banco terminado em _test")
+os.environ.setdefault("DATABASE_URL", test_database_url)

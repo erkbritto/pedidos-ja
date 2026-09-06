@@ -78,7 +78,7 @@ export function CarrinhoPage() {
           <div className="mt-4 flex flex-wrap items-center gap-3">
             <QuantidadeStepper value={draft.quantidade} onChange={definirQuantidade} />
             <Button asChild variant="outline" className="h-11">
-              <Link to={`/produto/${draft.produtoId}`}>Trocar produto</Link>
+              <Link to="/">Trocar produto</Link>
             </Button>
             <Button
               type="button"

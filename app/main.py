@@ -34,6 +34,8 @@ app = FastAPI(
         "múltiplos itens, pagamento, estoque ou autenticação nesta entrega."
     ),
     docs_url="/docs",
+    redoc_url=None,
+    swagger_ui_oauth2_redirect_url=None,
     openapi_url="/openapi.json",
 )
 
@@ -48,6 +50,12 @@ app.add_middleware(
 # 1) Rotas da API sempre primeiro.
 app.include_router(health.router)
 app.include_router(pedidos.router)
+
+
+@app.get("/pedidos/{invalid_path:path}", include_in_schema=False)
+def invalid_pedido_path(invalid_path: str) -> JSONResponse:
+    """Mantém erros de caminhos de pedidos como JSON, não como SPA."""
+    return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
 
 
 # 2) Tratamento de erros: nunca expor stack trace, SQL ou detalhes internos.

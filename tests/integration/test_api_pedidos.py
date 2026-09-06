@@ -60,6 +60,12 @@ def test_post_pedido_invalido_retorna_422(
     assert response.status_code == 422, f"esperava 422 para: {motivo}"
 
 
+@pytest.mark.parametrize("campo_extra", ["status", "valor_total"])
+def test_post_pedido_rejeita_campos_extras(client: TestClient, campo_extra: str) -> None:
+    response = client.post("/pedidos", json=_payload_valido(**{campo_extra: 1}))
+    assert response.status_code == 422
+
+
 # --- GET /pedidos/{id} --------------------------------------------------------
 
 
@@ -141,3 +147,41 @@ def test_patch_status_invalido_retorna_422(client: TestClient) -> None:
     response = client.patch(f"/pedidos/{criado['id']}/status", json={"status": "ENTREGUE"})
 
     assert response.status_code == 422
+
+
+def test_patch_status_rejeita_campos_extras(client: TestClient) -> None:
+    criado = client.post("/pedidos", json=_payload_valido()).json()
+
+    response = client.patch(
+        f"/pedidos/{criado['id']}/status",
+        json={"status": "CONFIRMADO", "valor_total": 1},
+    )
+
+    assert response.status_code == 422
+
+
+@pytest.mark.parametrize("pedido_id", ["1e2", "1.5", "+1", "-1", "0", "abc", "NaN", "Infinity"])
+def test_get_pedido_rejeita_id_invalido(client: TestClient, pedido_id: str) -> None:
+    response = client.get(f"/pedidos/{pedido_id}")
+    assert response.status_code == 422
+
+
+def test_get_pedidos_subrota_inexistente_retorna_404_json(client: TestClient) -> None:
+    response = client.get("/pedidos/foo/bar")
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+
+
+def test_rotas_spa_e_documentacao_desativada(client: TestClient) -> None:
+    admin = client.get("/admin/pedidos/1")
+    assert admin.status_code == 200
+    assert "text/html" in admin.headers["content-type"]
+
+    assert client.get("/redoc").status_code == 404
+    assert client.get("/docs/oauth2-redirect").status_code == 404
+
+
+def test_imagem_do_produto_retorna_jpeg(client: TestClient) -> None:
+    response = client.get("/products/combo-hamburguer.jpg")
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/jpeg"
