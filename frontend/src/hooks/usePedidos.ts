@@ -16,7 +16,7 @@ export function usePedido(id: number) {
   return useQuery<Pedido>({
     queryKey: pedidoQueryKey(id),
     queryFn: ({ signal }) => getPedido(id, signal),
-    enabled: Number.isInteger(id) && id > 0,
+    enabled: Number.isSafeInteger(id) && id > 0,
     retry: false,
   });
 }

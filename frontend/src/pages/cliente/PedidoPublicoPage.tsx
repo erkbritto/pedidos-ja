@@ -8,6 +8,7 @@ import { usePedido } from "@/hooks/usePedidos";
 import { isApiError, getErrorMessage } from "@/types/api";
 import { formatCurrency, formatInteger } from "@/lib/format";
 import { PedidoStatusBadge } from "@/components/pedidos/PedidoStatusBadge";
+import { parsePedidoId } from "@/lib/pedido-id";
 
 /** Página pública de detalhes de um pedido — acessível por /pedido/:id */
 export function PedidoPublicoPage() {
@@ -15,8 +16,8 @@ export function PedidoPublicoPage() {
   const [searchParams] = useSearchParams();
   const foiCriado = searchParams.get("criado") === "1";
 
-  const pedidoId = id ? Number(id) : NaN;
-  const { data: pedido, isLoading, isError, error } = usePedido(pedidoId);
+  const pedidoId = parsePedidoId(id);
+  const { data: pedido, isLoading, isError, error } = usePedido(pedidoId ?? -1);
 
   useEffect(() => {
     if (foiCriado) {
@@ -29,7 +30,7 @@ export function PedidoPublicoPage() {
   }, [foiCriado, pedido]);
 
   // ID inválido
-  if (!Number.isInteger(pedidoId) || pedidoId <= 0) {
+  if (pedidoId === null) {
     return (
       <div className="flex min-h-screen flex-col bg-background">
         <PublicPageHeader title="Pedido" backTo="/" />

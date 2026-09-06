@@ -105,7 +105,7 @@ não existe um servidor HTTP separado para a interface.
 ├── requirements.txt           # Dependências Python fixadas
 ├── alembic.ini
 ├── .env.example                # Referência de variáveis (não é copiado automaticamente)
-├── COMMITS_SUGERIDOS.md        # Sugestão de organização de commits (nada foi commitado)
+├── COMMITS_SUGERIDOS.md        # Próximos commits sugeridos para o diff atual
 └── README.md                   # Este arquivo
 ```
 

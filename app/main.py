@@ -52,9 +52,32 @@ app.include_router(health.router)
 app.include_router(pedidos.router)
 
 
+@app.get("/health/{invalid_path:path}", include_in_schema=False)
+def invalid_health_path(invalid_path: str) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
+
+
 @app.get("/pedidos/{invalid_path:path}", include_in_schema=False)
 def invalid_pedido_path(invalid_path: str) -> JSONResponse:
     """Mantém erros de caminhos de pedidos como JSON, não como SPA."""
+    return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
+
+
+@app.api_route("/docs/{invalid_path:path}", methods=["GET", "POST"], include_in_schema=False)
+def invalid_docs_path(invalid_path: str) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
+
+
+@app.api_route("/redoc", methods=["GET", "POST"], include_in_schema=False)
+@app.api_route("/redoc/{invalid_path:path}", methods=["GET", "POST"], include_in_schema=False)
+def invalid_redoc_path(invalid_path: str = "") -> JSONResponse:
+    return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
+
+
+@app.api_route(
+    "/openapi.json/{invalid_path:path}", methods=["GET", "POST"], include_in_schema=False
+)
+def invalid_openapi_path(invalid_path: str) -> JSONResponse:
     return JSONResponse(status_code=404, content={"detail": "Rota não encontrada."})
 
 

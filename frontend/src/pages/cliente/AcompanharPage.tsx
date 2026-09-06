@@ -1,7 +1,7 @@
 import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PublicPageHeader } from "@/components/layout/PublicHeader";
-import { parsePedidoIdFromInput } from "@/lib/pedido-id";
+import { parsePedidoId } from "@/lib/pedido-id";
 
 /** Consulta pública de um pedido pelo número. */
 export function AcompanharPage() {
@@ -23,7 +23,7 @@ export function AcompanharPage() {
       return;
     }
 
-    const id = parsePedidoIdFromInput(valor);
+    const id = parsePedidoId(valor);
     if (id === null) {
       setErro("Use somente números maiores que zero.");
       return;

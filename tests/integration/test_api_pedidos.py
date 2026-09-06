@@ -53,9 +53,7 @@ def test_post_pedido_valido_retorna_201_com_total_correto(client: TestClient) ->
         ({"produto": ""}, "produto vazio"),
     ],
 )
-def test_post_pedido_invalido_retorna_422(
-    client: TestClient, overrides: dict, motivo: str
-) -> None:
+def test_post_pedido_invalido_retorna_422(client: TestClient, overrides: dict, motivo: str) -> None:
     response = client.post("/pedidos", json=_payload_valido(**overrides))
     assert response.status_code == 422, f"esperava 422 para: {motivo}"
 
