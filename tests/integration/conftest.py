@@ -39,3 +39,21 @@ def client() -> TestClient:
     from app.main import app
 
     return TestClient(app)
+
+
+@pytest.fixture
+def spa_dist(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Fornece uma SPA/assets mínimos sem depender do build do frontend."""
+    dist_dir = tmp_path / "dist"
+    products_dir = dist_dir / "products"
+    products_dir.mkdir(parents=True)
+    (dist_dir / "index.html").write_text(
+        "<!doctype html><html><body>SPA de teste</body></html>", encoding="utf-8"
+    )
+    (products_dir / "combo-hamburguer.jpg").write_bytes(b"\xff\xd8\xff\xd9")
+
+    import app.main as main_module
+
+    monkeypatch.setattr(main_module, "DIST_DIR", dist_dir)
+    monkeypatch.setattr(main_module, "ASSETS_DIR", dist_dir / "assets")
+    return dist_dir

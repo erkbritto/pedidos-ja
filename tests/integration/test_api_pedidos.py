@@ -170,16 +170,24 @@ def test_get_pedidos_subrota_inexistente_retorna_404_json(client: TestClient) ->
     assert response.headers["content-type"].startswith("application/json")
 
 
-def test_rotas_spa_e_documentacao_desativada(client: TestClient) -> None:
+def test_rotas_spa_e_documentacao_desativada(client: TestClient, spa_dist) -> None:
     admin = client.get("/admin/pedidos/1")
     assert admin.status_code == 200
     assert "text/html" in admin.headers["content-type"]
 
+    assert client.get("/docs").status_code == 200
     assert client.get("/redoc").status_code == 404
     assert client.get("/docs/oauth2-redirect").status_code == 404
 
 
-def test_imagem_do_produto_retorna_jpeg(client: TestClient) -> None:
+@pytest.mark.parametrize("path", ["/health/foo", "/openapi.json/foo"])
+def test_namespaces_tecnicos_invalidos_retorna_404_json(client: TestClient, path: str) -> None:
+    response = client.get(path)
+    assert response.status_code == 404
+    assert response.headers["content-type"].startswith("application/json")
+
+
+def test_imagem_do_produto_retorna_jpeg(client: TestClient, spa_dist) -> None:
     response = client.get("/products/combo-hamburguer.jpg")
     assert response.status_code == 200
     assert response.headers["content-type"] == "image/jpeg"
