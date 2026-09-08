@@ -1,10 +1,12 @@
-# Commits sugeridos
+# Organização final dos commits
 
-1. **`fix: endurece contratos HTTP e IDs de pedidos`**
-   - Rejeita campos extras, valida IDs estritamente e protege namespaces técnicos.
-2. **`fix: corrige fluxos do frontend`**
-   - Corrige troca de produto, status administrativo, sucesso e catálogo.
-3. **`fix: torna rollback de persistência explícito`**
-   - Faz rollback quando `commit()` falha em operações de escrita.
-4. **`docs: alinha documentação e execução`**
-   - Atualiza rotas, códigos HTTP, banco de teste, Docker, Alembic e persistência.
+Os ajustes finais da entrega foram organizados em commits lógicos:
+
+1. **`test: desacopla testes SPA do build frontend`**
+   - Usa fixture temporária para validar fallback e assets em clone limpo.
+
+2. **`chore: normaliza line endings e arquivos de ambiente`**
+   - Define `.gitattributes` e ajusta os padrões do `.gitignore`.
+
+3. **`docs: ajusta documentacao final da entrega`**
+   - Alinha a documentação ao estado final do projeto.

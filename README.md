@@ -212,12 +212,12 @@ ele, todos os pedidos.
 
 ## Configuração
 
-Variáveis de ambiente do backend (todas com default de laboratório —
-funcionam sem nenhum arquivo `.env`, mas podem ser sobrescritas):
+Variáveis de ambiente do backend. O Docker Compose fornece defaults de
+laboratório; fora do Compose, `DATABASE_URL` é obrigatória:
 
 | Variável | Default (Compose) | Descrição |
 | --- | --- | --- |
-| `DATABASE_URL` | obrigatória | String de conexão do PostgreSQL |
+| `DATABASE_URL` | Compose: `postgresql+psycopg://pedidos:pedidos@postgres:5432/pedidos` | String de conexão do PostgreSQL |
 | `CORS_ORIGINS` | `http://localhost:5173` | Origens extras liberadas para CORS (dev do frontend separado) |
 | `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `pedidos` / `pedidos` / `pedidos` | Credenciais do container `postgres` |
 
@@ -278,9 +278,9 @@ pytest
 ruff check .
 ```
 
-Os testes usam exclusivamente `TEST_DATABASE_URL`. O nome do banco de teste
-deve terminar em `_test`; a configuração recusa o banco de desenvolvimento
-para evitar apagar dados reais durante o isolamento dos testes.
+Os testes usam exclusivamente `TEST_DATABASE_URL`, que é obrigatório. O banco
+de integração deve terminar em `_test`; a configuração sempre sobrescreve
+`DATABASE_URL` com essa URL para evitar apagar dados reais.
 
 - `tests/unit/`: `PedidoService` isolado, com um repository fake em
   memória (sem banco) — cálculo de `valor_total` com `Decimal`, status
