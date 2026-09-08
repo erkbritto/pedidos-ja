@@ -1,329 +1,845 @@
-# Pedido Já
+Pedido Já
 
-Sistema de gerenciamento de Pedidos — Trabalho de Desenvolvimento de Sistemas
-Distribuídos (Entrega 1: API Pedidos + persistência + integração com a
-interface web).
+Sistema de gerenciamento de pedidos desenvolvido para a disciplina de Desenvolvimento de Sistemas Distribuídos — Entrega 1: API Pedidos, persistência e integração com interface web.
 
-## Identificação
+Identificação
 
-- **Disciplina:** Desenvolvimento de Sistemas Distribuídos
-- **Trabalho:** Entrega 1 — API Pedidos
-- **Integrantes:** _(preencher com os nomes do grupo antes da entrega —
-  nenhum nome foi informado nos materiais recebidos, então nenhum foi
-  inventado aqui)_
+Disciplina: Desenvolvimento de Sistemas Distribuídos
 
-## Objetivo
+Curso: Ciência da Computação — 8º semestre
 
-Implementar uma aplicação de gerenciamento de Pedidos composta por:
+Trabalho: Entrega 1 — API Pedidos
 
-1. uma **API HTTP** (FastAPI) que expõe operações de criação, consulta,
-   listagem e atualização de status de Pedidos;
-2. uma camada de **persistência real** em PostgreSQL, versionada via
-   Alembic;
-3. uma **interface web** (SPA React) que consome essa API para permitir
-   que um cliente monte e acompanhe pedidos, e que um administrador
-   acompanhe e atualize o status desses pedidos.
+Integrantes
 
-Cada Pedido representa a compra de **um único produto** com uma
-**quantidade**, sem múltiplos itens por pedido, sem carrinho persistido no
-servidor, sem pagamento, sem estoque e sem autenticação — esse escopo é
-proposital para a Entrega 1 (ver [Limitações](#limitações-da-entrega-1)).
+Nome
 
-## Arquitetura
+RA
 
-### Visão física (containers)
+Aluísio Pereira Alves
 
-```text
-┌──────────────────────────┐        ┌──────────────────────────┐
-│   container: pedidos     │  SQL   │   container: postgres    │
-│  FastAPI + SPA compilada │◄──────►│        PostgreSQL 16      │
-│     (porta 8000)         │        │  (sem porta publicada)    │
-└──────────────────────────┘        └──────────────────────────┘
-            ▲
-            │ HTTP/JSON (same-origin)
-            │
-      Navegador do cliente
-```
+N135891
 
-Apenas dois serviços Docker existem: `pedidos` e `postgres`. O
-PostgreSQL **não** publica a porta 5432 no host — só é alcançável pela
-rede interna do Compose, pelo hostname `postgres`.
+Enzo Orlandi Gomes
 
-### Visão interna da aplicação `pedidos`
+G788EJ5
 
-```text
+Erick de Brito Carvalho
+
+G78HED3
+
+Kayky Crespo dos Santos
+
+G839226
+
+Objetivo
+
+Implementar uma aplicação de gerenciamento de pedidos composta por:
+
+uma API HTTP em FastAPI para criação, consulta, listagem e atualização de status de pedidos;
+
+uma camada de persistência real em PostgreSQL, com schema versionado por Alembic;
+
+uma interface web em React que consome a API para permitir que clientes criem e acompanhem pedidos e que uma área administrativa consulte e atualize seus status.
+
+Cada pedido representa um único produto com determinada quantidade. O escopo da Entrega 1 é propositalmente reduzido: não há múltiplos itens persistidos por pedido, pagamento, estoque, autenticação ou outros serviços adicionais.
+
+Arquitetura
+
+Visão física
+
+                     HTTP/JSON
+Navegador ─────────────────────────────────────►
+
+┌──────────────────────────────────────────────┐
+│ container: pedidos                           │
+│                                              │
+│ FastAPI                                      │
+│ API / Service / Repository                   │
+│ SPA React compilada                          │
+│ porta publicada: 8000                        │
+└──────────────────────┬───────────────────────┘
+                       │
+                       │ protocolo PostgreSQL
+                       ▼
+┌──────────────────────────────────────────────┐
+│ container: postgres                          │
+│ PostgreSQL 16                                │
+│ volume persistente postgres_data             │
+│ porta 5432 somente na rede interna Docker    │
+└──────────────────────────────────────────────┘
+
+A solução possui somente dois serviços Docker:
+
+pedidos
+
+postgres
+
+O PostgreSQL não publica a porta 5432 no host. Ele é acessado pela aplicação através da rede interna do Docker Compose, usando o hostname postgres.
+
+Visão interna da aplicação pedidos
+
 Requisição HTTP
       │
       ▼
-┌─────────────┐     ┌─────────┐     ┌────────────┐     ┌────────────┐
-│ API/Router  │ ──► │ Service │ ──► │ Repository │ ──► │ PostgreSQL │
-│ (app/api)   │     │(app/    │     │ (app/      │     │            │
-│             │     │services)│     │repositories│     │            │
-└─────────────┘     └─────────┘     └────────────┘     └────────────┘
-```
+┌─────────────┐
+│ API/Router  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Service   │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ Repository  │
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│ PostgreSQL  │
+└─────────────┘
 
-- **API/Router** (`app/api/`): recebe a requisição HTTP, valida o corpo via
-  schemas Pydantic, delega ao Service e traduz o resultado (ou erro) em uma
-  resposta HTTP. Não contém lógica de negócio nem SQL.
-- **Service** (`app/services/pedido_service.py`): concentra as regras da
-  aplicação — cálculo de `valor_total`, definição do status inicial
-  (`CRIADO`), normalização de `cliente`/`produto`. É a única camada que
-  decide _o que_ acontece; não sabe nada sobre HTTP.
-- **Repository** (`app/repositories/pedido_repository.py`): única camada
-  que conhece SQLAlchemy/SQL. Operações de persistência (`create`,
-  `get_by_id`, `list_all`, `update_status`).
-- **PostgreSQL**: fonte de verdade dos dados. Nada é mantido em memória do
-  processo Python entre requisições.
+API/Router (app/api/): recebe requisições HTTP, valida entrada com schemas Pydantic, delega o fluxo ao Service e traduz o resultado para respostas HTTP.
 
-O frontend estático (React, compilado com Vite) é servido pela própria
-aplicação FastAPI a partir de `frontend/dist`, na mesma origem da API —
-não existe um servidor HTTP separado para a interface.
+Service (app/services/pedido_service.py): concentra as regras de negócio, incluindo cálculo de valor_total, status inicial CRIADO e normalização dos campos textuais.
 
-## Estrutura do repositório
+Repository (app/repositories/pedido_repository.py): concentra o acesso ao banco por SQLAlchemy e as operações de persistência.
 
-```text
+PostgreSQL: fonte de verdade dos dados. Os pedidos não ficam armazenados na memória do processo FastAPI.
+
+API, Service e Repository são camadas lógicas da mesma aplicação, não containers nem microsserviços separados.
+
+O frontend React é compilado pelo Docker e servido pela própria aplicação FastAPI, na mesma origem da API.
+
+Estrutura do repositório
+
 .
-├── app/                      # Backend FastAPI
-│   ├── api/                    # Routers HTTP (health, pedidos)
-│   ├── services/                 # Regras de negócio (PedidoService)
-│   ├── repositories/               # Acesso a dados (PedidoRepository)
-│   ├── models/                       # Modelos SQLAlchemy (ORM)
-│   ├── schemas/                        # Schemas Pydantic (entrada/saída)
-│   ├── config.py                         # Configuração via variáveis de ambiente
-│   ├── database.py                        # Engine, Session, Base, get_db
-│   └── main.py                             # Monta a app, CORS, rotas, SPA fallback
-├── alembic/                  # Migrations (schema versionado do banco)
-│   └── versions/
-├── tests/
-│   ├── unit/                   # PedidoService com repository fake
-│   └── integration/              # API completa via TestClient + Postgres real
-├── frontend/                 # SPA React + TypeScript + Vite (ver frontend/README.md)
+├── app/
+│   ├── api/                    # Rotas HTTP
+│   ├── models/                 # Modelos SQLAlchemy
+│   ├── repositories/           # Acesso a dados
+│   ├── schemas/                # Schemas Pydantic
+│   ├── services/               # Regras de negócio
+│   ├── config.py               # Configuração por variáveis de ambiente
+│   ├── database.py             # Engine, Session e Base
+│   └── main.py                 # Aplicação FastAPI + SPA
+├── alembic/
+│   └── versions/               # Migrations
 ├── docker/
-│   └── entrypoint.sh          # Aplica migrations e sobe o Uvicorn
-├── Dockerfile                 # Build multi-stage (Node → build da SPA; Python → runtime)
-├── docker-compose.yml         # Serviços `pedidos` e `postgres`
-├── requirements.txt           # Dependências Python fixadas
+│   └── entrypoint.sh           # Migration + inicialização do Uvicorn
+├── frontend/                   # SPA React + TypeScript + Vite
+├── tests/
+│   ├── integration/            # API + PostgreSQL
+│   └── unit/                   # Regras do PedidoService
+├── .dockerignore
+├── .env.example
+├── .gitattributes
+├── .gitignore
 ├── alembic.ini
-├── .env.example                # Referência de variáveis (não é copiado automaticamente)
-├── COMMITS_SUGERIDOS.md        # Próximos commits sugeridos para o diff atual
-└── README.md                   # Este arquivo
-```
+├── COMMITS_SUGERIDOS.md
+├── docker-compose.yml
+├── Dockerfile
+├── pyproject.toml
+├── README.md
+└── requirements.txt
 
-## Tecnologias
+Tecnologias
 
-**Backend**
+Backend
 
-- Python 3.12
-- FastAPI + Uvicorn
-- SQLAlchemy 2.x (ORM)
-- Pydantic v2 (validação/serialização)
-- Alembic (migrations)
-- psycopg 3 (driver PostgreSQL)
-- pytest + httpx (testes)
-- Ruff (lint)
+Python 3.12
 
-**Persistência**
+FastAPI
 
-- PostgreSQL 16
+Uvicorn
 
-**Frontend** (ver detalhes em [`frontend/README.md`](frontend/README.md))
+SQLAlchemy 2.x
 
-- React 19 + TypeScript + Vite
-- React Router DOM, TanStack Query
-- Tailwind CSS v4, shadcn/ui
+Pydantic v2
 
-**Infraestrutura**
+Alembic
 
-- Docker + Docker Compose (build multi-stage; Node não existe na imagem final)
+psycopg 3
 
-## Modelo de Pedido
+pytest
 
-| Campo | Tipo | Observação |
-| --- | --- | --- |
-| `id` | inteiro | gerado pelo banco (autoincrement) |
-| `cliente` | texto | obrigatório, não vazio |
-| `produto` | texto | obrigatório, não vazio |
-| `quantidade` | inteiro | obrigatório, ≥ 1 |
-| `valor_unitario` | decimal (2 casas) | obrigatório, > 0 |
-| `valor_total` | decimal (2 casas) | **calculado pela aplicação** (`quantidade × valor_unitario`) — nunca aceito na entrada |
-| `status` | texto | `CRIADO` \| `CONFIRMADO` \| `CANCELADO`; inicia sempre como `CRIADO` |
-| `data_criacao` | timestamp | preenchido pelo banco no momento da criação |
+httpx
 
-`id`, `valor_total`, `status` inicial e `data_criacao` nunca são aceitos
-como entrada — são sempre decididos pela aplicação.
+Ruff
 
-## Endpoints
+Persistência
 
-| Método | Caminho | Descrição | Sucesso | Erros |
-| --- | --- | --- | --- | --- |
-| GET | `/health` | Disponibilidade da aplicação | 200 | — |
-| POST | `/pedidos` | Cria um pedido | 201 | 422 |
-| GET | `/pedidos` | Lista todos os pedidos | 200 | — |
-| GET | `/pedidos/{id}` | Consulta um pedido | 200 | 404 |
-| PATCH | `/pedidos/{id}/status` | Atualiza somente o status | 200 | 404, 422 |
+PostgreSQL 16
 
-Documentação interativa (Swagger/OpenAPI) gerada automaticamente pelo
-FastAPI em `/docs` (UI) e `/openapi.json` (schema).
+volume Docker persistente
 
-Nenhum outro endpoint de negócio existe: sem autenticação, sem CRUD de produtos,
-sem paginação, sem `DELETE`/`PUT`.
+Frontend
 
-## Como executar (Docker — forma oficial)
+React 19
 
-Pré-requisito: apenas Docker e Docker Compose instalados. **Não** é
-necessário instalar Node, Python ou PostgreSQL localmente, nem copiar
-`.env.example` para `.env`, nem criar o banco manualmente — tudo isso é
-feito pelo Compose/entrypoint.
+TypeScript
 
-```bash
+Vite
+
+React Router DOM
+
+TanStack Query
+
+Tailwind CSS v4
+
+shadcn/ui
+
+Mais detalhes em frontend/README.md.
+
+Infraestrutura
+
+Docker
+
+Docker Compose
+
+build multi-stage
+
+Node utilizado apenas durante o build do frontend
+
+runtime final baseado em Python
+
+Modelo de Pedido
+
+Campo
+
+Tipo
+
+Regra
+
+id
+
+inteiro
+
+gerado pelo banco
+
+cliente
+
+texto
+
+obrigatório e não vazio
+
+produto
+
+texto
+
+obrigatório e não vazio
+
+quantidade
+
+inteiro
+
+mínimo 1
+
+valor_unitario
+
+decimal
+
+positivo, até 2 casas decimais
+
+valor_total
+
+decimal
+
+calculado pela aplicação
+
+status
+
+texto
+
+CRIADO, CONFIRMADO ou CANCELADO
+
+data_criacao
+
+timestamp
+
+definido na criação
+
+Regras principais
+
+O cliente envia apenas:
+
+{
+  "cliente": "Ana Souza",
+  "produto": "Combo de Hambúrguer",
+  "quantidade": 2,
+  "valor_unitario": 32.90
+}
+
+A aplicação define automaticamente:
+
+id
+
+valor_total
+
+status
+
+data_criacao
+
+O valor total é calculado no Service:
+
+valor_total = quantidade × valor_unitario
+
+Exemplo:
+
+2 × 32,90 = 65,80
+
+Valores monetários são tratados internamente com Decimal e persistidos como NUMERIC no PostgreSQL.
+
+O status inicial de todo pedido é:
+
+CRIADO
+
+Valores permitidos:
+
+CRIADO
+CONFIRMADO
+CANCELADO
+
+API
+
+Endpoints de negócio
+
+Método
+
+Caminho
+
+Descrição
+
+Sucesso
+
+Erros principais
+
+GET
+
+/health
+
+Health check
+
+200
+
+—
+
+POST
+
+/pedidos
+
+Cria pedido
+
+201
+
+422
+
+GET
+
+/pedidos
+
+Lista pedidos
+
+200
+
+—
+
+GET
+
+/pedidos/{id}
+
+Consulta pedido
+
+200
+
+404, 422
+
+PATCH
+
+/pedidos/{id}/status
+
+Atualiza somente o status
+
+200
+
+404, 422
+
+Nenhum outro endpoint de negócio existe.
+
+Não fazem parte da Entrega 1:
+
+autenticação;
+
+CRUD de produtos;
+
+estoque;
+
+pagamento;
+
+paginação;
+
+DELETE;
+
+PUT.
+
+Endpoints técnicos
+
+GET /docs — Swagger UI
+
+GET /openapi.json — schema OpenAPI
+
+O ReDoc e o redirect OAuth2 do Swagger estão desabilitados.
+
+Interface web
+
+Rotas públicas
+
+/
+/produto/:produtoId
+/carrinho
+/revisar
+/acompanhar
+/pedido/:id
+
+Rotas administrativas/técnicas
+
+/admin
+/admin/pedidos
+/admin/pedidos/:id
+/admin/api
+/admin/arquitetura
+
+A área /admin é uma separação de navegação e experiência de uso. Não representa autenticação ou autorização, pois isso está fora do escopo desta entrega.
+
+O catálogo é estático no frontend. O carrinho representa o rascunho de um único pedido e não é persistido no servidor.
+
+Como executar
+
+Forma oficial
+
+Pré-requisito:
+
+Docker
+
+Docker Compose
+
+Não é necessário instalar localmente:
+
+Python
+
+Node
+
+PostgreSQL
+
+dependências npm
+
+dependências pip
+
+Também não é necessário copiar .env.example para .env para executar a configuração padrão da entrega.
+
+Na raiz do repositório:
+
 docker compose up -d --build
-```
 
-Isso vai:
+O comando:
 
-1. construir a imagem `pedidos` em duas etapas (build da SPA com Node,
-   depois runtime Python sem Node);
-2. subir o PostgreSQL e aguardar seu healthcheck (`pg_isready`);
-3. aplicar as migrations do Alembic (`alembic upgrade head`) antes de
-   iniciar o Uvicorn;
-4. expor a aplicação completa (API + interface) em `http://localhost:8000/`.
+baixa/constrói as imagens necessárias;
 
-### URLs
+compila a SPA React com Node;
 
-| URL | Conteúdo |
-| --- | --- |
-| `http://localhost:8000/` | Interface web (home do cliente) |
-| `http://localhost:8000/admin` | Área administrativa |
-| `http://localhost:8000/pedidos` | API de Pedidos (ver tabela de [Endpoints](#endpoints)) |
-| `http://localhost:8000/docs` | Swagger UI |
-| `http://localhost:8000/openapi.json` | Schema OpenAPI |
-| `http://localhost:8000/health` | Health check |
+prepara o runtime Python;
 
-Rotas React funcionam diretamente por URL (não apenas navegando pela SPA),
-pois a API é registrada antes do fallback da SPA no `app/main.py`:
-`/`, `/produto/:produtoId`, `/carrinho`, `/revisar`, `/acompanhar`,
-`/pedido/:id`, `/admin`, `/admin/pedidos`, `/admin/pedidos/:id`,
-`/admin/api`, `/admin/arquitetura`.
+sobe PostgreSQL 16;
 
-Para parar: `docker compose stop`. Para parar e remover os containers
-(mantendo o volume do banco): `docker compose down`. **Evite**
-`docker compose down -v` — isso apaga o volume `postgres_data` e, com
-ele, todos os pedidos.
+aguarda o healthcheck do banco;
 
-## Configuração
+executa alembic upgrade head;
 
-Variáveis de ambiente do backend. O Docker Compose fornece defaults de
-laboratório; fora do Compose, `DATABASE_URL` é obrigatória:
+inicia o FastAPI/Uvicorn;
 
-| Variável | Default (Compose) | Descrição |
-| --- | --- | --- |
-| `DATABASE_URL` | Compose: `postgresql+psycopg://pedidos:pedidos@postgres:5432/pedidos` | String de conexão do PostgreSQL |
-| `CORS_ORIGINS` | `http://localhost:5173` | Origens extras liberadas para CORS (dev do frontend separado) |
-| `POSTGRES_DB` / `POSTGRES_USER` / `POSTGRES_PASSWORD` | `pedidos` / `pedidos` / `pedidos` | Credenciais do container `postgres` |
+disponibiliza API e frontend em http://localhost:8000.
 
-Veja `.env.example` na raiz para referência (não é copiado
-automaticamente — o Compose já define os mesmos defaults).
+Verificar os containers
 
-O frontend, por sua vez, é compilado no Docker com configuração
-**same-origin** (`VITE_API_BASE_URL=` vazio, `VITE_APP_BASE_PATH=/`,
-`VITE_USE_MOCKS=false`) — não há `localhost` embutido no bundle final.
-Detalhes em [`frontend/README.md`](frontend/README.md).
+docker compose ps
 
-## Alembic (migrations)
+Devem existir somente:
 
-O schema do banco é versionado — nunca criado via
-`Base.metadata.create_all()` em produção. A migration inicial
-(`alembic/versions/0001_create_pedidos_table.py`) cria a tabela `pedidos`
-com CHECK constraints para `status`, `quantidade` e os valores monetários.
+pedidos
+postgres
 
-O container `pedidos` roda `alembic upgrade head` automaticamente antes de
-iniciar o Uvicorn (ver `docker/entrypoint.sh`). Para rodar manualmente
-(ex.: desenvolvimento local fora do Docker):
+O serviço pedidos publica a porta:
 
-```bash
+8000
+
+O serviço postgres não publica 5432 no host.
+
+URLs
+
+URL
+
+Conteúdo
+
+http://localhost:8000/
+
+Interface do cliente
+
+http://localhost:8000/admin
+
+Área administrativa
+
+http://localhost:8000/docs
+
+Swagger
+
+http://localhost:8000/openapi.json
+
+OpenAPI
+
+http://localhost:8000/health
+
+Health check
+
+http://localhost:8000/pedidos
+
+API de Pedidos
+
+Health check
+
+curl http://localhost:8000/health
+
+Resposta:
+
+{"status":"ok"}
+
+Configuração
+
+O Docker Compose fornece defaults de laboratório para execução da entrega.
+
+Backend
+
+Variável
+
+Default no Compose
+
+Descrição
+
+DATABASE_URL
+
+postgresql+psycopg://pedidos:pedidos@postgres:5432/pedidos
+
+conexão PostgreSQL
+
+CORS_ORIGINS
+
+http://localhost:5173
+
+origem do frontend em desenvolvimento
+
+POSTGRES_DB
+
+pedidos
+
+banco PostgreSQL
+
+POSTGRES_USER
+
+pedidos
+
+usuário PostgreSQL
+
+POSTGRES_PASSWORD
+
+pedidos
+
+senha PostgreSQL
+
+Ao executar o backend fora do Docker Compose, DATABASE_URL é obrigatória.
+
+Veja .env.example para referência.
+
+Frontend
+
+O build de produção usa:
+
+VITE_API_BASE_URL=
+VITE_APP_BASE_PATH=/
+VITE_USE_MOCKS=false
+
+Assim, frontend e API usam a mesma origem em produção.
+
+Alembic
+
+O schema do PostgreSQL é versionado com Alembic.
+
+O projeto não utiliza Base.metadata.create_all() em produção.
+
+A migration inicial está em:
+
+alembic/versions/0001_create_pedidos_table.py
+
+Na inicialização do container pedidos:
+
+alembic upgrade head
+↓
+uvicorn
+
+é executado automaticamente pelo docker/entrypoint.sh.
+
+Para execução local fora do Docker:
+
 export DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos
 alembic upgrade head
-```
 
-## Persistência e procedimento de restart
+Persistência
 
-Os dados vivem no volume Docker nomeado `postgres_data`, independente do
-ciclo de vida do container `pedidos`. Para comprovar:
+Os pedidos são armazenados no PostgreSQL e permanecem no volume Docker postgres_data.
 
-```bash
-# 1. Criar um pedido e guardar o id retornado
-curl -s -X POST http://localhost:8000/pedidos \
-  -H "Content-Type: application/json" \
-  -d '{"cliente":"Ana Souza","produto":"Combo de Hambúrguer","quantidade":2,"valor_unitario":32.90}'
+O container da aplicação pode ser reiniciado sem perda dos pedidos:
 
-# 2. Reiniciar somente o container da aplicação (o Postgres não é afetado)
 docker compose restart pedidos
 
-# 3. Consultar o mesmo id — o pedido continua existindo
-curl -s http://localhost:8000/pedidos/<id>
-```
+Para testar:
 
-`docker compose restart pedidos` reinicia apenas o container `pedidos`; o
-`postgres` continua rodando ininterruptamente, e o volume `postgres_data`
-nunca é tocado por esse comando.
+curl -X POST http://localhost:8000/pedidos   -H "Content-Type: application/json"   -d '{"cliente":"Ana Souza","produto":"Combo de Hambúrguer","quantidade":2,"valor_unitario":32.90}'
 
-## Testes
+Depois:
 
-```bash
-# Requer um PostgreSQL acessível (local ou via Docker) e TEST_DATABASE_URL
-# apontando para um banco de TESTE (nunca o de desenvolvimento).
-pip install -r requirements.txt
+docker compose restart pedidos
+
+E consulte novamente o ID criado:
+
+curl http://localhost:8000/pedidos/<id>
+
+O pedido deve continuar existindo.
+
+Também é possível parar apenas a API:
+
+docker compose stop pedidos
+
+Nesse momento o serviço postgres continua ativo.
+
+Depois:
+
+docker compose start pedidos
+
+Os dados continuam disponíveis.
+
+Validação realizada
+
+Durante a validação final da entrega foram confirmados:
+
+docker compose up -d --build funcionando;
+
+pedidos saudável;
+
+postgres saudável;
+
+/health retornando {"status":"ok"};
+
+frontend funcionando em localhost:8000;
+
+Swagger funcionando em /docs;
+
+criação real de pedido;
+
+cálculo 2 × 32,90 = 65,80;
+
+status inicial CRIADO;
+
+atualização para CONFIRMADO;
+
+persistência após docker compose restart pedidos;
+
+persistência após docker compose stop pedidos e docker compose start pedidos;
+
+PostgreSQL permanecendo ativo enquanto o container pedidos está parado.
+
+Como parar
+
+Parar os serviços:
+
+docker compose stop
+
+Parar e remover os containers, preservando o volume:
+
+docker compose down
+
+Evite usar:
+
+docker compose down -v
+
+O parâmetro -v remove o volume do PostgreSQL e apaga os pedidos persistidos.
+
+Testes
+
+Backend
+
+Os testes unitários não dependem de PostgreSQL.
+
+Os testes de integração exigem um PostgreSQL de testes acessível ao processo que executa pytest.
+
+A variável utilizada é:
+
+TEST_DATABASE_URL
+
+Por segurança:
+
+TEST_DATABASE_URL é obrigatória para integração;
+
+o nome do banco deve terminar em _test;
+
+a configuração de testes sobrescreve DATABASE_URL;
+
+isso impede que a suíte destrutiva de integração utilize acidentalmente o banco de desenvolvimento.
+
+Exemplo:
+
 export TEST_DATABASE_URL=postgresql+psycopg://pedidos:pedidos@localhost:5432/pedidos_test
 pytest
+
+Lint e formatação:
+
 ruff check .
-```
+ruff format --check .
 
-Os testes usam exclusivamente `TEST_DATABASE_URL`, que é obrigatório. O banco
-de integração deve terminar em `_test`; a configuração sempre sobrescreve
-`DATABASE_URL` com essa URL para evitar apagar dados reais.
+Frontend
 
-- `tests/unit/`: `PedidoService` isolado, com um repository fake em
-  memória (sem banco) — cálculo de `valor_total` com `Decimal`, status
-  inicial, normalização de `cliente`/`produto`, delegação ao repository.
-- `tests/integration/`: API completa via `TestClient`, contra um
-  PostgreSQL real (schema aplicado por Alembic, nunca `create_all()`) —
-  os 5 endpoints, validações (422), não encontrado (404), e a garantia de
-  que o `PATCH` de status não altera nenhum outro campo.
+cd frontend
+npm ci
+npm run test
+npm run typecheck
+npm run lint
+npm run build
 
-## Decisões de implementação
+Os testes frontend incluem validação estrita dos IDs de pedido.
 
-- **Camadas explícitas** (API → Service → Repository) mesmo em um escopo
-  pequeno: facilita testar o Service isoladamente e deixa claro onde cada
-  regra vive.
-- **`valor_total` sempre calculado no Service**, nunca aceito do cliente —
-  e sempre com `Decimal` (nunca `float`) para evitar erro de
-  arredondamento em valores monetários; a serialização Pydantic converte
-  `Decimal` para número JSON (não string) via `field_serializer` explícito,
-  para casar exatamente com o tipo `number` esperado pelo frontend.
-- **Status como `VARCHAR` + `CHECK constraint`**, não `ENUM` nativo do
-  Postgres: evolução do conjunto de status não exige `ALTER TYPE`.
-- **Erros nunca vazam detalhes internos**: um handler genérico de exceção
-  devolve sempre `{"detail": "Erro interno do servidor."}` com HTTP 500,
-  registrando o stack trace apenas no log do servidor.
-- **SPA servida pela própria API** (same-origin): elimina CORS em
-  produção e simplifica o deploy a dois containers.
-- **API sempre registrada antes do catch-all da SPA**: `/health`,
-  `/pedidos*`, `/docs` e `/openapi.json` nunca são interceptados pelo
-  fallback de `index.html`.
+IDs válidos:
 
-## Limitações da Entrega 1
+1
+42
+100
 
-Por escopo, propositalmente **não** existem nesta entrega:
+Formatos rejeitados:
 
-- autenticação, autorização, login, JWT ou usuários;
-- múltiplos itens por pedido, carrinho persistido no servidor ou
-  pagamento;
-- estoque, disponibilidade ou CRUD de produtos no backend (o catálogo
-  exibido na interface é uma lista estática do frontend, não um serviço);
-- paginação, filtros no servidor ou `DELETE`/`PUT` de pedidos;
-- qualquer mecanismo de deploy além de `docker compose up -d --build`.
+0
+-1
++1
+1.5
+1e2
+abc
+NaN
+Infinity
 
-## Próximos passos manuais (fora do escopo desta entrega)
+Decisões de implementação
 
-Após revisão do grupo, criar manualmente a tag `APIPedidos-1-final` no
-commit final desta entrega. Nenhuma tag foi criada automaticamente.
+Camadas explícitas
+
+A separação API → Service → Repository mantém responsabilidades claras:
+
+HTTP na camada API;
+
+regras no Service;
+
+persistência no Repository.
+
+Valor monetário
+
+valor_total nunca é aceito como entrada.
+
+O cálculo é feito com Decimal, evitando float na regra de negócio.
+
+Status
+
+O conjunto permitido é restrito a:
+
+CRIADO
+CONFIRMADO
+CANCELADO
+
+O banco também possui restrições para preservar a integridade dos dados.
+
+API stateless
+
+A aplicação FastAPI não guarda pedidos em memória.
+
+O PostgreSQL é a fonte de verdade.
+
+Por isso, reiniciar o container pedidos não remove pedidos existentes.
+
+SPA same-origin
+
+O frontend compilado é servido pela FastAPI.
+
+Em produção:
+
+Frontend + API → http://localhost:8000
+
+Isso simplifica a execução e elimina a necessidade de um servidor web adicional.
+
+Fallback da SPA
+
+Rotas de frontend podem ser acessadas diretamente pelo navegador.
+
+Namespaces reservados da API e documentação não são convertidos indevidamente em index.html.
+
+Exemplos de caminhos inválidos que retornam erro HTTP:
+
+/pedidos/foo/bar
+/health/foo
+/openapi.json/foo
+/redoc
+/docs/oauth2-redirect
+
+Limitações da Entrega 1
+
+Por decisão de escopo, não existem:
+
+autenticação ou autorização;
+
+login/JWT;
+
+usuários persistidos;
+
+múltiplos itens por pedido;
+
+carrinho persistido no servidor;
+
+estoque;
+
+pagamento;
+
+frete;
+
+CRUD de produtos no backend;
+
+paginação;
+
+PUT /pedidos;
+
+DELETE /pedidos;
+
+Redis;
+
+Kafka;
+
+RabbitMQ;
+
+serviços adicionais além de pedidos e postgres.
+
+O catálogo exibido pela interface é estático e existe apenas no frontend.
+
+Entrega final
+
+A execução oficial deve ser reproduzível a partir do repositório:
+
+git clone <URL_DO_REPOSITORIO>
+cd <repositorio>
+git checkout APIPedidos-1-final
+docker compose up -d --build
+
+Após a revisão final e a validação de um clone limpo, a versão entregue deve ser identificada pela tag:
+
+APIPedidos-1-final
