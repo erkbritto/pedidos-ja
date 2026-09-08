@@ -14,12 +14,12 @@ dist-ssr
 *.local
 
 # Variáveis de ambiente
-# `frontend/.env` contém a configuração oficial de produção do frontend e é
-# versionado de propósito. Já o `.env` da raiz (backend) é gerado localmente
-# a partir de `.env.example` e nunca deve ser versionado.
 /.env
+/frontend/.env
 .env.local
 .env.*.local
+!/.env.example
+!/frontend/.env.example
 
 # Editor
 .vscode/*
